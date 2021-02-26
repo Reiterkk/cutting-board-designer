@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>Babylon.js sample code</title>
+
+    <!-- Babylon.js -->
+    <script src="https://code.jquery.com/pep/0.4.2/pep.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+    <script src="https://preview.babylonjs.com/ammo.js"></script>
+    <script src="https://preview.babylonjs.com/cannon.js"></script>
+    <script src="https://preview.babylonjs.com/Oimo.js"></script>
+    <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+    <script src="https://preview.babylonjs.com/babylon.js"></script>
+    <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+    <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+    <style>
+        html,
+        body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #renderCanvas {
+            width: 600px;
+            height: 350px;
+            touch-action: none;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+
+        function showNormals(mesh, size, color, sc) {
+        var normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+        var positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);      
+        color = color || BABYLON.Color3.White();
+        sc = sc || scene;
+        size = size || 1;
+
+        var lines = [];
+        for (var i = 0; i < normals.length; i += 3) {
+            var v1 = BABYLON.Vector3.FromArray(positions, i);
+            var v2 = v1.add(BABYLON.Vector3.FromArray(normals, i).scaleInPlace(size));
+            lines.push([v1.add(mesh.position), v2.add(mesh.position)]);
+        }
+        var normalLines = BABYLON.MeshBuilder.CreateLineSystem("normalLines", {lines: lines}, sc);
+        normalLines.color = color;
+        return normalLines;
+    }
+
+        var canvas = document.getElementById("renderCanvas");
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function () { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false }); };
+        const createScene = () => {
+
+            getZPosition = function (box1, box2) {
+                return box1.position.z + (box1.geometry.extend.maximum.z - box1.geometry.extend.minimum.z) / 2 + (box2.geometry.extend.maximum.z - box2.geometry.extend.minimum.z) / 2;
+            }
+            var scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color3.FromInts(50, 50, 50);
+            scene.environmentTexture = new BABYLON.CubeTexture("textures/Studio_Softbox_2Umbrellas_cube_specular.env", scene);
+            const camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 4, Math.PI / 4, 4, BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+            // const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
+            // const light = new BABYLON.PointLight("Omni", new BABYLON.Vector3(20, 20, 100), scene);
+
+            //wood material
+
+            var nodeMaterial = new BABYLON.NodeMaterial("node");
+
+// InputBlock
+var position = new BABYLON.InputBlock("position");
+position.setAsAttribute("position");
+
+// TransformBlock
+var WorldPos = new BABYLON.TransformBlock("WorldPos");
+WorldPos.complementZ = 0;
+WorldPos.complementW = 1;
+
+// InputBlock
+var World = new BABYLON.InputBlock("World");
+World.setAsSystemValue(BABYLON.NodeMaterialSystemValues.World);
+
+// TransformBlock
+var Worldnormal = new BABYLON.TransformBlock("World normal");
+Worldnormal.complementZ = 0;
+Worldnormal.complementW = 0;
+
+// InputBlock
+var normal = new BABYLON.InputBlock("normal");
+normal.setAsAttribute("normal");
+
+// PBRMetallicRoughnessBlock
+var PBRMetallicRoughness = new BABYLON.PBRMetallicRoughnessBlock("PBRMetallicRoughness");
+PBRMetallicRoughness.lightFalloff = 0;
+PBRMetallicRoughness.useAlphaTest = false;
+PBRMetallicRoughness.alphaTestCutoff = 0.5;
+PBRMetallicRoughness.useAlphaBlending = false;
+PBRMetallicRoughness.useRadianceOverAlpha = true;
+PBRMetallicRoughness.useSpecularOverAlpha = true;
+PBRMetallicRoughness.enableSpecularAntiAliasing = false;
+PBRMetallicRoughness.realTimeFiltering = false;
+PBRMetallicRoughness.realTimeFilteringQuality = 8;
+PBRMetallicRoughness.useEnergyConservation = true;
+PBRMetallicRoughness.useRadianceOcclusion = true;
+PBRMetallicRoughness.useHorizonOcclusion = true;
+PBRMetallicRoughness.unlit = false;
+PBRMetallicRoughness.forceNormalForward = false;
+PBRMetallicRoughness.debugMode = 0;
+PBRMetallicRoughness.debugLimit = 0;
+PBRMetallicRoughness.debugFactor = 0;
+
+// InputBlock
+var view = new BABYLON.InputBlock("view");
+view.setAsSystemValue(BABYLON.NodeMaterialSystemValues.View);
+
+// InputBlock
+var cameraPosition = new BABYLON.InputBlock("cameraPosition");
+cameraPosition.setAsSystemValue(BABYLON.NodeMaterialSystemValues.CameraPosition);
+
+// PerturbNormalBlock
+var Perturbnormal = new BABYLON.PerturbNormalBlock("Perturb normal");
+Perturbnormal.invertX = false;
+Perturbnormal.invertY = false;
+
+// InputBlock
+var uv = new BABYLON.InputBlock("uv");
+uv.setAsAttribute("uv");
+
+// ColorMergerBlock
+var ColorMerger = new BABYLON.ColorMergerBlock("ColorMerger");
+ColorMerger.visibleInInspector = false;
+ ColorMerger.visibleOnFrame = false;
+
+// AddBlock
+var Add = new BABYLON.AddBlock("Add");
+Add.visibleInInspector = false;
+ Add.visibleOnFrame = false;
+
+// InputBlock
+var Float = new BABYLON.InputBlock("Float");
+Float.value = 0.5;
+Float.min = 0;
+Float.max = 0;
+Float.isBoolean = false;
+Float.matrixMode = 0;
+Float.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float.isConstant = false;
+
+// AddBlock
+var Add1 = new BABYLON.AddBlock("Add");
+Add1.visibleInInspector = false;
+ Add1.visibleOnFrame = false;
+
+// DerivativeBlock
+var Derivative = new BABYLON.DerivativeBlock("Derivative");
+Derivative.visibleInInspector = false;
+ Derivative.visibleOnFrame = false;
+
+// AddBlock
+var Add2 = new BABYLON.AddBlock("Add");
+Add2.visibleInInspector = false;
+ Add2.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale = new BABYLON.ScaleBlock("Scale");
+Scale.visibleInInspector = false;
+ Scale.visibleOnFrame = false;
+
+// SubtractBlock
+var Subtract = new BABYLON.SubtractBlock("Subtract");
+Subtract.visibleInInspector = false;
+ Subtract.visibleOnFrame = false;
+
+// InputBlock
+var Float1 = new BABYLON.InputBlock("Float");
+Float1.value = 0.5;
+Float1.min = 0;
+Float1.max = 0;
+Float1.isBoolean = false;
+Float1.matrixMode = 0;
+Float1.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float1.isConstant = false;
+
+// AddBlock
+var roughness_total = new BABYLON.AddBlock("roughness_total");
+roughness_total.visibleInInspector = false;
+ roughness_total.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale1 = new BABYLON.ScaleBlock("Scale");
+Scale1.visibleInInspector = false;
+ Scale1.visibleOnFrame = false;
+
+// AddBlock
+var Add3 = new BABYLON.AddBlock("Add");
+Add3.visibleInInspector = false;
+ Add3.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale2 = new BABYLON.ScaleBlock("Scale");
+Scale2.visibleInInspector = false;
+ Scale2.visibleOnFrame = false;
+
+// SubtractBlock
+var Subtract1 = new BABYLON.SubtractBlock("Subtract");
+Subtract1.visibleInInspector = false;
+ Subtract1.visibleOnFrame = false;
+
+// InputBlock
+var Float2 = new BABYLON.InputBlock("Float");
+Float2.value = 0.96;
+Float2.min = 0;
+Float2.max = 2;
+Float2.isBoolean = false;
+Float2.matrixMode = 0;
+Float2.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float2.isConstant = false;
+
+// VectorSplitterBlock
+var VectorSplitter = new BABYLON.VectorSplitterBlock("VectorSplitter");
+VectorSplitter.visibleInInspector = false;
+ VectorSplitter.visibleOnFrame = false;
+
+// WorleyNoise3DBlock
+var WorleyNoiseD = new BABYLON.WorleyNoise3DBlock("WorleyNoise3D");
+WorleyNoiseD.manhattanDistance = false;
+
+// ScaleBlock
+var Scale3 = new BABYLON.ScaleBlock("Scale");
+Scale3.visibleInInspector = false;
+ Scale3.visibleOnFrame = false;
+
+// VectorMergerBlock
+var VectorMerger = new BABYLON.VectorMergerBlock("VectorMerger");
+VectorMerger.visibleInInspector = false;
+ VectorMerger.visibleOnFrame = false;
+
+// ScaleBlock
+var ScaleX = new BABYLON.ScaleBlock("ScaleX");
+ScaleX.visibleInInspector = false;
+ ScaleX.visibleOnFrame = false;
+
+// VectorSplitterBlock
+var VectorSplitter1 = new BABYLON.VectorSplitterBlock("VectorSplitter");
+VectorSplitter1.visibleInInspector = false;
+ VectorSplitter1.visibleOnFrame = false;
+
+// ScaleBlock
+var ScaleY = new BABYLON.ScaleBlock("ScaleY");
+ScaleY.visibleInInspector = false;
+ ScaleY.visibleOnFrame = false;
+
+// InputBlock
+var FactorY = new BABYLON.InputBlock("FactorY");
+FactorY.value = 3;
+FactorY.min = 0;
+FactorY.max = 100;
+FactorY.isBoolean = false;
+FactorY.matrixMode = 0;
+FactorY.animationType = BABYLON.AnimatedInputBlockTypes.None;
+FactorY.isConstant = false;
+
+// ScaleBlock
+var ScaleX1 = new BABYLON.ScaleBlock("ScaleX");
+ScaleX1.visibleInInspector = false;
+ ScaleX1.visibleOnFrame = false;
+
+// InputBlock
+var FactorZ = new BABYLON.InputBlock("FactorZ");
+FactorZ.value = 80;
+FactorZ.min = 0;
+FactorZ.max = 100;
+FactorZ.isBoolean = false;
+FactorZ.matrixMode = 0;
+FactorZ.animationType = BABYLON.AnimatedInputBlockTypes.None;
+FactorZ.isConstant = false;
+
+// InputBlock
+var FactorX = new BABYLON.InputBlock("FactorX");
+FactorX.value = 80;
+FactorX.min = 0;
+FactorX.max = 100;
+FactorX.isBoolean = false;
+FactorX.matrixMode = 0;
+FactorX.animationType = BABYLON.AnimatedInputBlockTypes.None;
+FactorX.isConstant = false;
+
+// InputBlock
+var Float3 = new BABYLON.InputBlock("Float");
+Float3.value = 2;
+Float3.min = 0;
+Float3.max = 10;
+Float3.isBoolean = false;
+Float3.matrixMode = 0;
+Float3.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float3.isConstant = false;
+
+// InputBlock
+var Float4 = new BABYLON.InputBlock("Float");
+Float4.value = 1.28;
+Float4.min = 0;
+Float4.max = 4;
+Float4.isBoolean = false;
+Float4.matrixMode = 0;
+Float4.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float4.isConstant = false;
+
+// InputBlock
+var Float5 = new BABYLON.InputBlock("Float");
+Float5.value = 0.41;
+Float5.min = 0;
+Float5.max = 1;
+Float5.isBoolean = false;
+Float5.matrixMode = 0;
+Float5.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float5.isConstant = false;
+
+// ScaleBlock
+var Scale4 = new BABYLON.ScaleBlock("Scale");
+Scale4.visibleInInspector = false;
+ Scale4.visibleOnFrame = false;
+
+// InputBlock
+var Color = new BABYLON.InputBlock("Color3");
+Color.value = new BABYLON.Color3(0.7411764705882353, 0.48627450980392156, 0.3058823529411765);
+Color.isConstant = false;
+
+// ScaleBlock
+var Scale5 = new BABYLON.ScaleBlock("Scale");
+Scale5.visibleInInspector = false;
+ Scale5.visibleOnFrame = false;
+
+// AddBlock
+var Add4 = new BABYLON.AddBlock("Add");
+Add4.visibleInInspector = false;
+ Add4.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale6 = new BABYLON.ScaleBlock("Scale");
+Scale6.visibleInInspector = false;
+ Scale6.visibleOnFrame = false;
+
+// TrigonometryBlock
+var Sqrt = new BABYLON.TrigonometryBlock("Sqrt");
+Sqrt.operation = BABYLON.TrigonometryBlockOperations.Sqrt;
+
+// AddBlock
+var Add5 = new BABYLON.AddBlock("Add");
+Add5.visibleInInspector = false;
+ Add5.visibleOnFrame = false;
+
+// WaveBlock
+var SawToothwave = new BABYLON.WaveBlock("SawTooth wave");
+SawToothwave.visibleInInspector = false;
+ SawToothwave.visibleOnFrame = false;
+
+// AddBlock
+var Add6 = new BABYLON.AddBlock("Add");
+Add6.visibleInInspector = false;
+ Add6.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale7 = new BABYLON.ScaleBlock("Scale");
+Scale7.visibleInInspector = false;
+ Scale7.visibleOnFrame = false;
+
+// MultiplyBlock
+var Multiply = new BABYLON.MultiplyBlock("Multiply");
+Multiply.visibleInInspector = false;
+ Multiply.visibleOnFrame = false;
+
+// TrigonometryBlock
+var Sqrt1 = new BABYLON.TrigonometryBlock("Sqrt");
+Sqrt1.operation = BABYLON.TrigonometryBlockOperations.Sqrt;
+
+// AddBlock
+var Add7 = new BABYLON.AddBlock("Add");
+Add7.visibleInInspector = false;
+ Add7.visibleOnFrame = false;
+
+// AddBlock
+var Add8 = new BABYLON.AddBlock("Add");
+Add8.visibleInInspector = false;
+ Add8.visibleOnFrame = false;
+
+// PowBlock
+var Pow = new BABYLON.PowBlock("Pow");
+Pow.visibleInInspector = false;
+ Pow.visibleOnFrame = false;
+
+// TrigonometryBlock
+var Abs = new BABYLON.TrigonometryBlock("Abs");
+Abs.operation = BABYLON.TrigonometryBlockOperations.Abs;
+
+// ScaleBlock
+var scale_y = new BABYLON.ScaleBlock("scale_y");
+scale_y.visibleInInspector = false;
+ scale_y.visibleOnFrame = false;
+
+// AddBlock
+var translate_y = new BABYLON.AddBlock("translate_y");
+translate_y.visibleInInspector = false;
+ translate_y.visibleOnFrame = false;
+
+// InputBlock
+var translate_y_factor = new BABYLON.InputBlock("translate_y_factor");
+translate_y_factor.value = -0.84;
+translate_y_factor.min = -1;
+translate_y_factor.max = 1;
+translate_y_factor.isBoolean = false;
+translate_y_factor.matrixMode = 0;
+translate_y_factor.animationType = BABYLON.AnimatedInputBlockTypes.None;
+translate_y_factor.isConstant = false;
+
+// VectorSplitterBlock
+var VectorSplitter2 = new BABYLON.VectorSplitterBlock("VectorSplitter");
+VectorSplitter2.visibleInInspector = false;
+ VectorSplitter2.visibleOnFrame = false;
+
+// AddBlock
+var translate_x = new BABYLON.AddBlock("translate_x");
+translate_x.visibleInInspector = false;
+ translate_x.visibleOnFrame = false;
+
+// InputBlock
+var translate_x_factor = new BABYLON.InputBlock("translate_x_factor");
+translate_x_factor.value = 0.5;
+translate_x_factor.min = -1;
+translate_x_factor.max = 1;
+translate_x_factor.isBoolean = false;
+translate_x_factor.matrixMode = 0;
+translate_x_factor.animationType = BABYLON.AnimatedInputBlockTypes.None;
+translate_x_factor.isConstant = false;
+
+// ScaleBlock
+var scale_x = new BABYLON.ScaleBlock("scale_x");
+scale_x.visibleInInspector = false;
+ scale_x.visibleOnFrame = false;
+
+// InputBlock
+var scale_x_factor = new BABYLON.InputBlock("scale_x_factor");
+scale_x_factor.value = 4;
+scale_x_factor.min = 0;
+scale_x_factor.max = 100;
+scale_x_factor.isBoolean = false;
+scale_x_factor.matrixMode = 0;
+scale_x_factor.animationType = BABYLON.AnimatedInputBlockTypes.None;
+scale_x_factor.isConstant = false;
+
+// TrigonometryBlock
+var Abs1 = new BABYLON.TrigonometryBlock("Abs");
+Abs1.operation = BABYLON.TrigonometryBlockOperations.Abs;
+
+// PowBlock
+var Pow1 = new BABYLON.PowBlock("Pow");
+Pow1.visibleInInspector = false;
+ Pow1.visibleOnFrame = false;
+
+// InputBlock
+var Float6 = new BABYLON.InputBlock("Float");
+Float6.value = 2;
+Float6.min = 0;
+Float6.max = 0;
+Float6.isBoolean = false;
+Float6.matrixMode = 0;
+Float6.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float6.isConstant = false;
+
+// PowBlock
+var Pow2 = new BABYLON.PowBlock("Pow");
+Pow2.visibleInInspector = false;
+ Pow2.visibleOnFrame = false;
+
+// TrigonometryBlock
+var Abs2 = new BABYLON.TrigonometryBlock("Abs");
+Abs2.operation = BABYLON.TrigonometryBlockOperations.Abs;
+
+// ScaleBlock
+var scale_z = new BABYLON.ScaleBlock("scale_z");
+scale_z.visibleInInspector = false;
+ scale_z.visibleOnFrame = false;
+
+// AddBlock
+var translate_z = new BABYLON.AddBlock("translate_z");
+translate_z.visibleInInspector = false;
+ translate_z.visibleOnFrame = false;
+
+// InputBlock
+var translate_z_factor = new BABYLON.InputBlock("translate_z_factor");
+translate_z_factor.value = -0.94;
+translate_z_factor.min = -1;
+translate_z_factor.max = 1;
+translate_z_factor.isBoolean = false;
+translate_z_factor.matrixMode = 0;
+translate_z_factor.animationType = BABYLON.AnimatedInputBlockTypes.None;
+translate_z_factor.isConstant = false;
+
+// InputBlock
+var scale_z_factor = new BABYLON.InputBlock("scale_z_factor");
+scale_z_factor.value = 4;
+scale_z_factor.min = 0;
+scale_z_factor.max = 100;
+scale_z_factor.isBoolean = false;
+scale_z_factor.matrixMode = 0;
+scale_z_factor.animationType = BABYLON.AnimatedInputBlockTypes.None;
+scale_z_factor.isConstant = false;
+
+// VectorMergerBlock
+var VectorMerger1 = new BABYLON.VectorMergerBlock("VectorMerger");
+VectorMerger1.visibleInInspector = false;
+ VectorMerger1.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale8 = new BABYLON.ScaleBlock("Scale");
+Scale8.visibleInInspector = false;
+ Scale8.visibleOnFrame = false;
+
+// InputBlock
+var Float7 = new BABYLON.InputBlock("Float");
+Float7.value = 10;
+Float7.min = 0;
+Float7.max = 100;
+Float7.isBoolean = false;
+Float7.matrixMode = 0;
+Float7.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float7.isConstant = false;
+
+// SimplexPerlin3DBlock
+var SimplexPerlinD = new BABYLON.SimplexPerlin3DBlock("SimplexPerlin3D");
+SimplexPerlinD.visibleInInspector = false;
+ SimplexPerlinD.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale9 = new BABYLON.ScaleBlock("Scale");
+Scale9.visibleInInspector = false;
+ Scale9.visibleOnFrame = false;
+
+// InputBlock
+var Float8 = new BABYLON.InputBlock("Float");
+Float8.value = 4.6;
+Float8.min = 0;
+Float8.max = 10;
+Float8.isBoolean = false;
+Float8.matrixMode = 0;
+Float8.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float8.isConstant = false;
+
+// ScaleBlock
+var Scale10 = new BABYLON.ScaleBlock("Scale");
+Scale10.visibleInInspector = false;
+ Scale10.visibleOnFrame = false;
+
+// InputBlock
+var Float9 = new BABYLON.InputBlock("Float");
+Float9.value = 0.5;
+Float9.min = 0;
+Float9.max = 1;
+Float9.isBoolean = false;
+Float9.matrixMode = 0;
+Float9.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float9.isConstant = false;
+
+// ScaleBlock
+var Scale11 = new BABYLON.ScaleBlock("Scale");
+Scale11.visibleInInspector = false;
+ Scale11.visibleOnFrame = false;
+
+// SimplexPerlin3DBlock
+var SimplexPerlinD1 = new BABYLON.SimplexPerlin3DBlock("SimplexPerlin3D");
+SimplexPerlinD1.visibleInInspector = false;
+ SimplexPerlinD1.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale12 = new BABYLON.ScaleBlock("Scale");
+Scale12.visibleInInspector = false;
+ Scale12.visibleOnFrame = false;
+
+// InputBlock
+var Float10 = new BABYLON.InputBlock("Float");
+Float10.value = 40;
+Float10.min = 0;
+Float10.max = 400;
+Float10.isBoolean = false;
+Float10.matrixMode = 0;
+Float10.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float10.isConstant = false;
+
+// AddBlock
+var Add9 = new BABYLON.AddBlock("Add");
+Add9.visibleInInspector = false;
+ Add9.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale13 = new BABYLON.ScaleBlock("Scale");
+Scale13.visibleInInspector = false;
+ Scale13.visibleOnFrame = false;
+
+// InputBlock
+var Float11 = new BABYLON.InputBlock("Float");
+Float11.value = 0.03;
+Float11.min = 0;
+Float11.max = 0.5;
+Float11.isBoolean = false;
+Float11.matrixMode = 0;
+Float11.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float11.isConstant = false;
+
+// OneMinusBlock
+var Oneminus = new BABYLON.OneMinusBlock("One minus");
+Oneminus.visibleInInspector = false;
+ Oneminus.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale14 = new BABYLON.ScaleBlock("Scale");
+Scale14.visibleInInspector = false;
+ Scale14.visibleOnFrame = false;
+
+// InputBlock
+var Float12 = new BABYLON.InputBlock("Float");
+Float12.value = 10;
+Float12.min = 0;
+Float12.max = 100;
+Float12.isBoolean = false;
+Float12.matrixMode = 0;
+Float12.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float12.isConstant = false;
+
+// SimplexPerlin3DBlock
+var SimplexPerlinD2 = new BABYLON.SimplexPerlin3DBlock("SimplexPerlin3D");
+SimplexPerlinD2.visibleInInspector = false;
+ SimplexPerlinD2.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale15 = new BABYLON.ScaleBlock("Scale");
+Scale15.visibleInInspector = false;
+ Scale15.visibleOnFrame = false;
+
+// InputBlock
+var Float13 = new BABYLON.InputBlock("Float");
+Float13.value = 4.6;
+Float13.min = 0;
+Float13.max = 10;
+Float13.isBoolean = false;
+Float13.matrixMode = 0;
+Float13.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float13.isConstant = false;
+
+// ScaleBlock
+var Scale16 = new BABYLON.ScaleBlock("Scale");
+Scale16.visibleInInspector = false;
+ Scale16.visibleOnFrame = false;
+
+// InputBlock
+var Float14 = new BABYLON.InputBlock("Float");
+Float14.value = 0.5;
+Float14.min = 0;
+Float14.max = 1;
+Float14.isBoolean = false;
+Float14.matrixMode = 0;
+Float14.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float14.isConstant = false;
+
+// ScaleBlock
+var Scale17 = new BABYLON.ScaleBlock("Scale");
+Scale17.visibleInInspector = false;
+ Scale17.visibleOnFrame = false;
+
+// SimplexPerlin3DBlock
+var SimplexPerlinD3 = new BABYLON.SimplexPerlin3DBlock("SimplexPerlin3D");
+SimplexPerlinD3.visibleInInspector = false;
+ SimplexPerlinD3.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale18 = new BABYLON.ScaleBlock("Scale");
+Scale18.visibleInInspector = false;
+ Scale18.visibleOnFrame = false;
+
+// InputBlock
+var Float15 = new BABYLON.InputBlock("Float");
+Float15.value = 40;
+Float15.min = 0;
+Float15.max = 400;
+Float15.isBoolean = false;
+Float15.matrixMode = 0;
+Float15.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float15.isConstant = false;
+
+// AddBlock
+var Add10 = new BABYLON.AddBlock("Add");
+Add10.visibleInInspector = false;
+ Add10.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale19 = new BABYLON.ScaleBlock("Scale");
+Scale19.visibleInInspector = false;
+ Scale19.visibleOnFrame = false;
+
+// InputBlock
+var Float16 = new BABYLON.InputBlock("Float");
+Float16.value = 0.03;
+Float16.min = 0;
+Float16.max = 0.5;
+Float16.isBoolean = false;
+Float16.matrixMode = 0;
+Float16.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float16.isConstant = false;
+
+// OneMinusBlock
+var Oneminus1 = new BABYLON.OneMinusBlock("One minus");
+Oneminus1.visibleInInspector = false;
+ Oneminus1.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale20 = new BABYLON.ScaleBlock("Scale");
+Scale20.visibleInInspector = false;
+ Scale20.visibleOnFrame = false;
+
+// MultiplyBlock
+var Multiply1 = new BABYLON.MultiplyBlock("Multiply");
+Multiply1.visibleInInspector = false;
+ Multiply1.visibleOnFrame = false;
+
+// InputBlock
+var Float17 = new BABYLON.InputBlock("Float");
+Float17.value = 4;
+Float17.min = 0;
+Float17.max = 100;
+Float17.isBoolean = false;
+Float17.matrixMode = 0;
+Float17.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float17.isConstant = false;
+
+// AddBlock
+var Add11 = new BABYLON.AddBlock("Add");
+Add11.visibleInInspector = false;
+ Add11.visibleOnFrame = false;
+
+// WaveBlock
+var SawToothwave1 = new BABYLON.WaveBlock("SawTooth wave");
+SawToothwave1.visibleInInspector = false;
+ SawToothwave1.visibleOnFrame = false;
+
+// AddBlock
+var Add12 = new BABYLON.AddBlock("Add");
+Add12.visibleInInspector = false;
+ Add12.visibleOnFrame = false;
+
+// InputBlock
+var Float18 = new BABYLON.InputBlock("Float");
+Float18.value = 0.5;
+Float18.min = 0;
+Float18.max = 0;
+Float18.isBoolean = false;
+Float18.matrixMode = 0;
+Float18.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float18.isConstant = false;
+
+// TrigonometryBlock
+var Sqrt2 = new BABYLON.TrigonometryBlock("Sqrt");
+Sqrt2.operation = BABYLON.TrigonometryBlockOperations.Sqrt;
+
+// ScaleBlock
+var Scale21 = new BABYLON.ScaleBlock("Scale");
+Scale21.visibleInInspector = false;
+ Scale21.visibleOnFrame = false;
+
+// OneMinusBlock
+var Oneminus2 = new BABYLON.OneMinusBlock("One minus");
+Oneminus2.visibleInInspector = false;
+ Oneminus2.visibleOnFrame = false;
+
+// InputBlock
+var Float19 = new BABYLON.InputBlock("Float");
+Float19.value = 0.85;
+Float19.min = 0;
+Float19.max = 1;
+Float19.isBoolean = false;
+Float19.matrixMode = 0;
+Float19.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float19.isConstant = false;
+
+// InputBlock
+var scale_y_factor = new BABYLON.InputBlock("scale_y_factor");
+scale_y_factor.value = 1;
+scale_y_factor.min = 0;
+scale_y_factor.max = 100;
+scale_y_factor.isBoolean = false;
+scale_y_factor.matrixMode = 0;
+scale_y_factor.animationType = BABYLON.AnimatedInputBlockTypes.None;
+scale_y_factor.isConstant = false;
+
+// InputBlock
+var Float20 = new BABYLON.InputBlock("Float");
+Float20.value = 2;
+Float20.min = 0;
+Float20.max = 100;
+Float20.isBoolean = false;
+Float20.matrixMode = 0;
+Float20.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float20.isConstant = false;
+
+// InputBlock
+var Float21 = new BABYLON.InputBlock("Float");
+Float21.value = 0.5;
+Float21.min = 0;
+Float21.max = 0;
+Float21.isBoolean = false;
+Float21.matrixMode = 0;
+Float21.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float21.isConstant = false;
+
+// ScaleBlock
+var Scale22 = new BABYLON.ScaleBlock("Scale");
+Scale22.visibleInInspector = false;
+ Scale22.visibleOnFrame = false;
+
+// InputBlock
+var Float22 = new BABYLON.InputBlock("Float");
+Float22.value = 0.5;
+Float22.min = 0;
+Float22.max = 0;
+Float22.isBoolean = false;
+Float22.matrixMode = 0;
+Float22.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float22.isConstant = false;
+
+// OneMinusBlock
+var Oneminus3 = new BABYLON.OneMinusBlock("One minus");
+Oneminus3.visibleInInspector = false;
+ Oneminus3.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale23 = new BABYLON.ScaleBlock("Scale");
+Scale23.visibleInInspector = false;
+ Scale23.visibleOnFrame = false;
+
+// InputBlock
+var Color1 = new BABYLON.InputBlock("Color3");
+Color1.value = new BABYLON.Color3(0.33725490196078434, 0.15294117647058825, 0.12549019607843137);
+Color1.isConstant = false;
+
+// ScaleBlock
+var Scale24 = new BABYLON.ScaleBlock("Scale");
+Scale24.visibleInInspector = false;
+ Scale24.visibleOnFrame = false;
+
+// OneMinusBlock
+var Oneminus4 = new BABYLON.OneMinusBlock("One minus");
+Oneminus4.visibleInInspector = false;
+ Oneminus4.visibleOnFrame = false;
+
+// AddBlock
+var Add13 = new BABYLON.AddBlock("Add");
+Add13.visibleInInspector = false;
+ Add13.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale25 = new BABYLON.ScaleBlock("Scale");
+Scale25.visibleInInspector = false;
+ Scale25.visibleOnFrame = false;
+
+// OneMinusBlock
+var Oneminus5 = new BABYLON.OneMinusBlock("One minus");
+Oneminus5.visibleInInspector = false;
+ Oneminus5.visibleOnFrame = false;
+
+// InputBlock
+var Float23 = new BABYLON.InputBlock("Float");
+Float23.value = 0.5;
+Float23.min = 0;
+Float23.max = 1;
+Float23.isBoolean = false;
+Float23.matrixMode = 0;
+Float23.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float23.isConstant = false;
+
+// ScaleBlock
+var Scale26 = new BABYLON.ScaleBlock("Scale");
+Scale26.visibleInInspector = false;
+ Scale26.visibleOnFrame = false;
+
+// AddBlock
+var Add14 = new BABYLON.AddBlock("Add");
+Add14.visibleInInspector = false;
+ Add14.visibleOnFrame = false;
+
+// AddBlock
+var Add15 = new BABYLON.AddBlock("Add");
+Add15.visibleInInspector = false;
+ Add15.visibleOnFrame = false;
+
+// ColorSplitterBlock
+var ColorSplitter = new BABYLON.ColorSplitterBlock("ColorSplitter");
+ColorSplitter.visibleInInspector = false;
+ ColorSplitter.visibleOnFrame = false;
+
+// PowBlock
+var Pow3 = new BABYLON.PowBlock("Pow");
+Pow3.visibleInInspector = false;
+ Pow3.visibleOnFrame = false;
+
+// InputBlock
+var Float24 = new BABYLON.InputBlock("Float");
+Float24.value = 1.5;
+Float24.min = 0;
+Float24.max = 4;
+Float24.isBoolean = false;
+Float24.matrixMode = 0;
+Float24.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float24.isConstant = false;
+
+// PowBlock
+var Pow4 = new BABYLON.PowBlock("Pow");
+Pow4.visibleInInspector = false;
+ Pow4.visibleOnFrame = false;
+
+// ColorMergerBlock
+var ColorMerger1 = new BABYLON.ColorMergerBlock("ColorMerger");
+ColorMerger1.visibleInInspector = false;
+ ColorMerger1.visibleOnFrame = false;
+
+// PowBlock
+var Pow5 = new BABYLON.PowBlock("Pow");
+Pow5.visibleInInspector = false;
+ Pow5.visibleOnFrame = false;
+
+// ScaleBlock
+var Scale27 = new BABYLON.ScaleBlock("Scale");
+Scale27.visibleInInspector = false;
+ Scale27.visibleOnFrame = false;
+
+// InputBlock
+var Float25 = new BABYLON.InputBlock("Float");
+Float25.value = 1.1312;
+Float25.min = 0;
+Float25.max = 2.02;
+Float25.isBoolean = false;
+Float25.matrixMode = 0;
+Float25.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float25.isConstant = false;
+
+// InputBlock
+var Float26 = new BABYLON.InputBlock("Float");
+Float26.value = 0.7;
+Float26.min = 0;
+Float26.max = 0;
+Float26.isBoolean = false;
+Float26.matrixMode = 0;
+Float26.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float26.isConstant = false;
+
+// InputBlock
+var Float27 = new BABYLON.InputBlock("Float");
+Float27.value = 1;
+Float27.min = 0;
+Float27.max = 0;
+Float27.isBoolean = false;
+Float27.matrixMode = 0;
+Float27.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float27.isConstant = false;
+
+// InputBlock
+var strength = new BABYLON.InputBlock("strength");
+strength.value = 1;
+strength.min = 0;
+strength.max = 1;
+strength.isBoolean = false;
+strength.matrixMode = 0;
+strength.animationType = BABYLON.AnimatedInputBlockTypes.None;
+strength.isConstant = false;
+
+// InputBlock
+var Float28 = new BABYLON.InputBlock("Float");
+Float28.value = 0;
+Float28.min = 0;
+Float28.max = 1;
+Float28.isBoolean = false;
+Float28.matrixMode = 0;
+Float28.animationType = BABYLON.AnimatedInputBlockTypes.None;
+Float28.isConstant = false;
+
+// ReflectionBlock
+var Reflection = new BABYLON.ReflectionBlock("Reflection");
+Reflection.useSphericalHarmonics = true;
+Reflection.forceIrradianceInFragment = false;
+
+// FragmentOutputBlock
+var FragmentOutput = new BABYLON.FragmentOutputBlock("FragmentOutput");
+FragmentOutput.convertToGammaSpace = false;
+FragmentOutput.convertToLinearSpace = false;
+
+// TransformBlock
+var WorldPosViewProjectionTransform = new BABYLON.TransformBlock("WorldPos * ViewProjectionTransform");
+WorldPosViewProjectionTransform.complementZ = 0;
+WorldPosViewProjectionTransform.complementW = 1;
+
+// InputBlock
+var ViewProjection = new BABYLON.InputBlock("ViewProjection");
+ViewProjection.setAsSystemValue(BABYLON.NodeMaterialSystemValues.ViewProjection);
+
+// VertexOutputBlock
+var VertexOutput = new BABYLON.VertexOutputBlock("VertexOutput");
+VertexOutput.visibleInInspector = false;
+ VertexOutput.visibleOnFrame = false;
+
+// Connections
+position.output.connectTo(WorldPos.vector);
+World.output.connectTo(WorldPos.transform);
+WorldPos.output.connectTo(WorldPosViewProjectionTransform.vector);
+ViewProjection.output.connectTo(WorldPosViewProjectionTransform.transform);
+WorldPosViewProjectionTransform.output.connectTo(VertexOutput.vector);
+WorldPos.output.connectTo(PBRMetallicRoughness.worldPosition);
+normal.output.connectTo(Worldnormal.vector);
+World.output.connectTo(Worldnormal.transform);
+Worldnormal.output.connectTo(PBRMetallicRoughness.worldNormal);
+view.output.connectTo(PBRMetallicRoughness.view);
+cameraPosition.output.connectTo(PBRMetallicRoughness.cameraPosition);
+WorldPos.output.connectTo(Perturbnormal.worldPosition);
+Worldnormal.output.connectTo(Perturbnormal.worldNormal);
+uv.output.connectTo(Perturbnormal.uv);
+Float.output.connectTo(Add.left);
+Float1.output.connectTo(Subtract.left);
+Float2.output.connectTo(Subtract1.left);
+position.output.connectTo(VectorSplitter1.xyzIn);
+VectorSplitter1.x.connectTo(ScaleX.input);
+FactorX.output.connectTo(ScaleX.factor);
+ScaleX.output.connectTo(VectorMerger.x);
+VectorSplitter1.y.connectTo(ScaleY.input);
+FactorY.output.connectTo(ScaleY.factor);
+ScaleY.output.connectTo(VectorMerger.y);
+VectorSplitter1.z.connectTo(ScaleX1.input);
+FactorZ.output.connectTo(ScaleX1.factor);
+ScaleX1.output.connectTo(VectorMerger.z);
+VectorMerger.xyz.connectTo(Scale3.input);
+Float3.output.connectTo(Scale3.factor);
+Scale3.output.connectTo(WorleyNoiseD.seed);
+Float4.output.connectTo(WorleyNoiseD.jitter);
+WorleyNoiseD.output.connectTo(VectorSplitter.xyIn);
+VectorSplitter.x.connectTo(Subtract1.right);
+Subtract1.output.connectTo(Scale2.input);
+Float5.output.connectTo(Scale2.factor);
+Scale2.output.connectTo(Add3.left);
+VectorSplitter.x.connectTo(Add3.right);
+Add3.output.connectTo(Scale1.input);
+Float22.output.connectTo(Scale1.factor);
+Scale1.output.connectTo(roughness_total.left);
+translate_y_factor.output.connectTo(translate_y.left);
+position.output.connectTo(VectorSplitter2.xyzIn);
+VectorSplitter2.y.connectTo(translate_y.right);
+translate_y.output.connectTo(scale_y.input);
+scale_y_factor.output.connectTo(scale_y.factor);
+scale_y.output.connectTo(Abs.input);
+Abs.output.connectTo(Pow.value);
+Float6.output.connectTo(Pow.power);
+Pow.output.connectTo(Add8.left);
+translate_x_factor.output.connectTo(translate_x.left);
+VectorSplitter2.x.connectTo(translate_x.right);
+translate_x.output.connectTo(scale_x.input);
+scale_x_factor.output.connectTo(scale_x.factor);
+scale_x.output.connectTo(Abs1.input);
+Abs1.output.connectTo(Pow1.value);
+Float6.output.connectTo(Pow1.power);
+Pow1.output.connectTo(Add8.right);
+Add8.output.connectTo(Add7.left);
+translate_z_factor.output.connectTo(translate_z.left);
+VectorSplitter2.z.connectTo(translate_z.right);
+translate_z.output.connectTo(scale_z.input);
+scale_z_factor.output.connectTo(scale_z.factor);
+scale_z.output.connectTo(Abs2.input);
+Abs2.output.connectTo(Pow2.value);
+Float6.output.connectTo(Pow2.power);
+Pow2.output.connectTo(Add7.right);
+Add7.output.connectTo(Sqrt1.input);
+Sqrt1.output.connectTo(Multiply.left);
+Float20.output.connectTo(Multiply.right);
+Multiply.output.connectTo(Scale7.input);
+Float11.output.connectTo(Oneminus.input);
+Oneminus.output.connectTo(Scale7.factor);
+Scale7.output.connectTo(Add6.left);
+scale_x.output.connectTo(VectorMerger1.x);
+scale_y.output.connectTo(VectorMerger1.y);
+scale_z.output.connectTo(VectorMerger1.z);
+VectorMerger1.xyz.connectTo(Scale8.input);
+Float7.output.connectTo(Scale8.factor);
+Scale8.output.connectTo(SimplexPerlinD.seed);
+SimplexPerlinD.output.connectTo(Scale9.input);
+Float8.output.connectTo(Scale9.factor);
+Scale9.output.connectTo(Scale10.input);
+Float9.output.connectTo(Scale10.factor);
+Scale10.output.connectTo(Add9.left);
+VectorMerger1.xyz.connectTo(Scale12.input);
+Float10.output.connectTo(Scale12.factor);
+Scale12.output.connectTo(SimplexPerlinD1.seed);
+SimplexPerlinD1.output.connectTo(Scale11.input);
+Float9.output.connectTo(Scale11.factor);
+Scale11.output.connectTo(Add9.right);
+Add9.output.connectTo(Scale13.input);
+Float11.output.connectTo(Scale13.factor);
+Scale13.output.connectTo(Add6.right);
+Add6.output.connectTo(SawToothwave.input);
+SawToothwave.output.connectTo(Add5.left);
+Float21.output.connectTo(Add5.right);
+Add5.output.connectTo(Sqrt.input);
+Sqrt.output.connectTo(Scale6.input);
+Float19.output.connectTo(Scale6.factor);
+Scale6.output.connectTo(Add4.left);
+Sqrt1.output.connectTo(Multiply1.left);
+Float17.output.connectTo(Multiply1.right);
+Multiply1.output.connectTo(Scale20.input);
+Float16.output.connectTo(Oneminus1.input);
+Oneminus1.output.connectTo(Scale20.factor);
+Scale20.output.connectTo(Add11.left);
+VectorMerger1.xyz.connectTo(Scale14.input);
+Float12.output.connectTo(Scale14.factor);
+Scale14.output.connectTo(SimplexPerlinD2.seed);
+SimplexPerlinD2.output.connectTo(Scale15.input);
+Float13.output.connectTo(Scale15.factor);
+Scale15.output.connectTo(Scale16.input);
+Float14.output.connectTo(Scale16.factor);
+Scale16.output.connectTo(Add10.left);
+VectorMerger1.xyz.connectTo(Scale18.input);
+Float15.output.connectTo(Scale18.factor);
+Scale18.output.connectTo(SimplexPerlinD3.seed);
+SimplexPerlinD3.output.connectTo(Scale17.input);
+Float14.output.connectTo(Scale17.factor);
+Scale17.output.connectTo(Add10.right);
+Add10.output.connectTo(Scale19.input);
+Float16.output.connectTo(Scale19.factor);
+Scale19.output.connectTo(Add11.right);
+Add11.output.connectTo(SawToothwave1.input);
+SawToothwave1.output.connectTo(Add12.left);
+Float18.output.connectTo(Add12.right);
+Add12.output.connectTo(Sqrt2.input);
+Sqrt2.output.connectTo(Scale21.input);
+Float19.output.connectTo(Oneminus2.input);
+Oneminus2.output.connectTo(Scale21.factor);
+Scale21.output.connectTo(Add4.right);
+Add4.output.connectTo(Scale22.input);
+Float22.output.connectTo(Scale22.factor);
+Scale22.output.connectTo(roughness_total.right);
+roughness_total.output.connectTo(Subtract.right);
+Subtract.output.connectTo(Scale.input);
+Float26.output.connectTo(Scale.factor);
+Scale.output.connectTo(Add2.left);
+roughness_total.output.connectTo(Add2.right);
+Add2.output.connectTo(Derivative.input);
+Derivative.dx.connectTo(Add.right);
+Add.output.connectTo(ColorMerger.r);
+Float.output.connectTo(Add1.left);
+Derivative.dy.connectTo(Add1.right);
+Add1.output.connectTo(ColorMerger.g);
+Float27.output.connectTo(ColorMerger.b);
+ColorMerger.rgb.connectTo(Perturbnormal.normalMapColor);
+strength.output.connectTo(Perturbnormal.strength);
+Perturbnormal.output.connectTo(PBRMetallicRoughness.perturbedNormal);
+Color.output.connectTo(Scale5.input);
+Add4.output.connectTo(Scale5.factor);
+Scale5.output.connectTo(Add14.left);
+Color1.output.connectTo(Scale23.input);
+Add4.output.connectTo(Oneminus3.input);
+Oneminus3.output.connectTo(Scale23.factor);
+Scale23.output.connectTo(Add14.right);
+Add14.output.connectTo(Scale26.input);
+Float23.output.connectTo(Scale26.factor);
+Scale26.output.connectTo(Add15.left);
+Color.output.connectTo(Scale4.input);
+Add3.output.connectTo(Scale4.factor);
+Scale4.output.connectTo(Add13.left);
+Color1.output.connectTo(Scale24.input);
+Add3.output.connectTo(Oneminus4.input);
+Oneminus4.output.connectTo(Scale24.factor);
+Scale24.output.connectTo(Add13.right);
+Add13.output.connectTo(Scale25.input);
+Float23.output.connectTo(Oneminus5.input);
+Oneminus5.output.connectTo(Scale25.factor);
+Scale25.output.connectTo(Add15.right);
+Add15.output.connectTo(ColorSplitter.rgbIn);
+ColorSplitter.r.connectTo(Pow3.value);
+Float24.output.connectTo(Pow3.power);
+Pow3.output.connectTo(ColorMerger1.r);
+ColorSplitter.g.connectTo(Pow4.value);
+Float24.output.connectTo(Pow4.power);
+Pow4.output.connectTo(ColorMerger1.g);
+ColorSplitter.b.connectTo(Pow5.value);
+Float24.output.connectTo(Pow5.power);
+Pow5.output.connectTo(ColorMerger1.b);
+ColorMerger1.rgb.connectTo(PBRMetallicRoughness.baseColor);
+Float28.output.connectTo(PBRMetallicRoughness.metallic);
+roughness_total.output.connectTo(Scale27.input);
+Float25.output.connectTo(Scale27.factor);
+Scale27.output.connectTo(PBRMetallicRoughness.roughness);
+position.output.connectTo(Reflection.position);
+World.output.connectTo(Reflection.world);
+Reflection.reflection.connectTo(PBRMetallicRoughness.reflection);
+PBRMetallicRoughness.lighting.connectTo(FragmentOutput.rgb);
+
+// Output nodes
+nodeMaterial.addOutputNode(VertexOutput);
+nodeMaterial.addOutputNode(FragmentOutput);
+nodeMaterial.build();
+
+
+
+            const box = BABYLON.MeshBuilder.CreateBox("box", { height: 1, width: 0.75, depth: 0.25 });
+            var material = new BABYLON.StandardMaterial(scene);
+            material.alpha = 1;
+            material.diffuseColor = new BABYLON.Color3(1.0, 0.2, 0.7);
+            box.material = material;
+            box.position.z = (box.geometry.extend.maximum.z - box.geometry.extend.minimum.z) / 2
+
+            const box2 = BABYLON.MeshBuilder.CreateBox("box2", { height: 1, width: 0.75, depth: 0.75 });
+            var material2 = new BABYLON.StandardMaterial(scene);
+            material2.alpha = 1;
+            material2.diffuseColor = new BABYLON.Color3(0.2, 0.7, 1.0);
+            box2.material = material2;
+            box2.position.z = getZPosition(box, box2);
+
+            const box3 = BABYLON.MeshBuilder.CreateBox("box2", { height: 1, width: 0.75, depth: 0.5, wrap: true, topBaseAt: 2, bottomBaseAt: 3});
+
+            var material3 = new BABYLON.PBRMaterial("pbr", scene);
+            // var material3 = new BABYLON.StandardMaterial(scene);
+            var diffuseTexture = new BABYLON.Texture("textures/Wood_07_1K_Base_Color.png", scene);
+            // diffuseTexture.wAng = 3.1415/1;
+            var bumpTexture = new BABYLON.Texture("textures/Wood_07_1K_Normal.png", scene);
+            material3.metallic = 0.0; // set to 1 to only use it from the metallicRoughnessTexture
+            material3.roughness = 0.6; // set to 1 to only use it from the metallicRoughnessTexture
+            material3.reflectionTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+                "/textures/environment.dds",
+                scene
+            );
+            material3.roughnessTexture = new BABYLON.Texture("/textures/Wood_07_1K_Roughness.png", scene);
+            material3.albedoTexture = diffuseTexture;
+            material3.albedoTexture.uScale = 2;
+            material3.albedoTexture.vScale = 2;
+            material3.albedoTexture.uOffset = 1.5;
+            material3.albedoTexture.vOffset = 0.5;
+            material3.bumpTexture = bumpTexture;
+            material3.bumpTexture.uScale = 2;
+            material3.bumpTexture.vScale = 2;
+            material3.bumpTexture.uOffset = 1.5;
+            material3.bumpTexture.vOffset = 0.5;
+
+            var material4 = new BABYLON.PBRMaterial("pbr", scene);
+            // var material3 = new BABYLON.StandardMaterial(scene);
+            diffuseTexture = new BABYLON.Texture("textures/Wood_07_1K_Base_Color_bright.png", scene);
+            // diffuseTexture.wAng = 3.1415/1;
+            bumpTexture = new BABYLON.Texture("textures/Wood_07_1K_Normal.png", scene);
+            material4.metallic = 0.0; // set to 1 to only use it from the metallicRoughnessTexture
+            material4.roughness = 0.6; // set to 1 to only use it from the metallicRoughnessTexture
+            material4.reflectionTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+                "/textures/environment.dds",
+                scene
+            );
+            material4.roughnessTexture = new BABYLON.Texture("/textures/Wood_07_1K_Roughness.png", scene);
+            material4.albedoTexture = diffuseTexture;
+            material4.albedoTexture.uScale = 2;
+            material4.albedoTexture.vScale = 2;
+            material4.albedoTexture.uOffset = 1.5;
+            material4.albedoTexture.vOffset = 0.5;
+            material4.bumpTexture = bumpTexture;
+            material4.bumpTexture.uScale = 2;
+            material4.bumpTexture.vScale = 2;
+            material4.bumpTexture.uOffset = 1.5;
+            material4.bumpTexture.vOffset = 0.5;
+
+
+            // var roughnessTexture = new BABYLON.Texture("textures/Wood_07_1K_Roughness.png", scene);
+            // material3.diffuseTexture = diffuseTexture;
+            // material3.bumpTexture = bumpTexture;
+            // material3.roughness = roughnessTexture;
+
+            // material3.alpha = 1;
+            // material3.diffuseColor = new BABYLON.Color3(0.2, 1.0, 0.7);
+
+            box3.material = material3;
+            getZPosition(box2, box3);
+            box3.position.z = getZPosition(box2, box3);
+
+            camera.setTarget(new BABYLON.Vector3(0, 0, 0.75));
+            camera.lowerRadiusLimit = 1.;
+            camera.wheelPrecision = 50;
+
+            // Move the light with the camera
+            scene.registerBeforeRender(function () {
+                // light.position = camera.position;
+                camera.wheelPrecision = 50 / camera.radius * 10;
+            });
+
+            // The first parameter can be used to specify which mesh to import. Here we import all meshes
+            BABYLON.SceneLoader.ImportMesh("", "scenes/", "cube_beveled_smooth.gltf", scene, function (newMeshes) {
+                // Set the target of the camera to the first imported mesh
+                camera.target = newMeshes[1];
+                newMeshes[1].material = material3;
+                newMeshes[1].position.y = 5;
+                newMeshes[1].forceSharedVertices();
+                var positions = newMeshes[1].getVerticesData(BABYLON.VertexBuffer.PositionKind);
+                var normals = newMeshes[1].getVerticesData(BABYLON.VertexBuffer.NormalKind);
+                var indices = newMeshes[1].getIndices();
+                var normals2 = [];
+
+                var vertexData = new BABYLON.VertexData();
+                BABYLON.VertexData.ComputeNormals(positions, indices, normals2);
+                vertexData.positions = positions;
+                vertexData.indices = indices;
+                for (let index = 0; index < normals2.length; index++) {
+                    normals2[index] = -normals2[index];
+                }
+                vertexData.normals = normals2;
+                vertexData.applyToMesh(newMeshes[1]);
+                showNormals(newMeshes[1], 0.25, new BABYLON.Color3(1, 0, 0));
+
+                console.log({positions, normals, indices, normals2})
+                // newMeshes[1].forceSharedVertices();
+                newMeshes[2] = newMeshes[1].clone();
+                newMeshes[2].position.x = -2;
+                newMeshes[2].material = nodeMaterial ;
+            });
+            console.log(scene.clearColor);
+            return scene;
+
+        };;
+        var engine;
+        var scene;
+        initFunction = async function () {
+            var asyncEngineCreation = async function () {
+                try {
+                    return createDefaultEngine();
+                } catch (e) {
+                    console.log("the available createEngine function failed. Creating the default engine instead");
+                    return createDefaultEngine();
+                }
+            }
+
+            engine = await asyncEngineCreation();
+            if (!engine) throw 'engine should not be null.';
+            scene = createScene();
+        };
+        initFunction().then(() => {
+            sceneToRender = scene
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+<!-- https://playground.babylonjs.com/#I2TSGX#3 -->
+</html>
