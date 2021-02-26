@@ -1,0 +1,31 @@
+html, body {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#renderCanvas {
+    width: 50%;
+    height: 50%;
+    touch-action: none;
+    display: inline-block;
+}
+
+.block__column {
+    display: inline-block;
+}
+
+.input-group__block--height {
+    display: inline-block;
+}
+
+.input-group__block--wood {
+    display: inline-block;
+}
+
+.container__cutting-board {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}

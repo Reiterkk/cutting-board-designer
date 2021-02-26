@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function () {
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+            // scene.clearColor = new BABYLON.Color3.FromInts(50, 50, 50);
+            scene.environmentTexture = new BABYLON.CubeTexture("/textures/environment.env", scene);
+
+    // This creates and positions a free camera (non-mesh)
+    var camera = new BABYLON.ArcRotateCamera("camera", Math.PI/2, Math.PI/4, 5, BABYLON.Vector3.Zero(),scene)
+
+
+    // This attaches the camera to the canvas
+    camera.attachControl(canvas, true);
+
+    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+    // var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+    // Default intensity is 1. Let's dim the light a small amount
+    // light.intensity = 0.7;
+
+    // Our built-in 'sphere' shape.
+    var box = BABYLON.MeshBuilder.CreateTiledBox("box", {size: 1, updatable:true}, scene);
+
+
+
+    // Move the sphere upward 1/2 its height
+    box.position.y = 1;
+
+    let setBoxSize = (x,y,z, box) => {
+        let positions = box.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        let numberOfVertices = positions.length/3;
+        for(let i = 0; i<numberOfVertices; i++) {
+            positions[i*3] = x*positions[i*3]/2/Math.abs(positions[i*3]);
+            positions[i*3+1] = y*positions[i*3+1]/2/Math.abs(positions[i*3+1]);
+            positions[i*3+2] = z*positions[i*3+2]/2/Math.abs(positions[i*3+2]);
+        }
+        box.updateVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
+    }
+    setBoxSize(1,2,3,box);
+    setBoxSize(0.5,0.5,0.5,box);
+    
+
+    camera.setTarget(box.position);
+    var pbr = new BABYLON.PBRMaterial("pbr", scene);
+    // pbr.albedoColor = new BABYLON.Color3(1.0, 0.766, 0.336);
+    pbr.metallic = 1.0; // set to 1 to only use it from the metallicRoughnessTexture
+    pbr.roughness = 0.0; // set to 1 to only use it from the metallicRoughnessTexture
+    box.material = pbr;
+
+    return scene;
+};
+                var engine;
+                var scene;
+                initFunction = async function() {               
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene        
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
