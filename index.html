@@ -7,29 +7,31 @@
     <title>Document</title>
     <link rel = "stylesheet" type = "text/css" href = "./assets/style/style.css" />
 
+    <!-- sortable-js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.13.0/Sortable.min.js" integrity="sha512-5x7t0fTAVo9dpfbp3WtE2N6bfipUwk7siViWncdDoSz2KwOqVC1N9fDxEOzk0vTThOua/mglfF8NO7uVDLRC8Q==" crossorigin="anonymous"></script>
 
     <!-- Babylon.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
     <script src="https://preview.babylonjs.com/ammo.js"></script>
     <script src="https://preview.babylonjs.com/cannon.js"></script>
     <script src="https://preview.babylonjs.com/Oimo.js"></script>
-    <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+    <script src="https://preview.babylonjs.com/earcut.min.js"></script> -->
     <script src="https://preview.babylonjs.com/babylon.js"></script>
-    <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <!-- <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
     <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
     <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
     <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
-    <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script> -->
     <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
-    <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
-    
-    <script src="./assets/js/main.js"></script>
+    <!-- <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script> -->
+
+    <script src="./assets/js/main.js" defer></script>
     <script src="./assets/js/cbBabylon.js" defer></script>
 </head>
 <body>
 
     <div class="input-group">
-        <input type="range" min="320" max="600" value="320" step="40" id="totalLengthInput" class="input-group__input">
+        <input type="range" min="320" max="600" value="320" step="40" id="totalLengthInput" class="input-group__input input-group__input-range">
         <label for="totalLengthInput" class="input-group__label">Länge: <span id="totalLength"></span> mm</label>
         <!-- <span class="input-group__help">
           This is a help text. Could be a warning, too. For different colors you
@@ -38,21 +40,20 @@
     </div>
 
     <div class="input-group">
-        <input type="range" min="200" max="450" value="200" step="5" id="totalWidthInput" class="input-group__input">
+        <input type="range" min="200" max="450" value="230" step="5" id="totalWidthInput" class="input-group__input input-group__input-range">
         <label for="totalWidthInput" class="input-group__label">Breite: <span id="totalWidth"></span> mm</label>
     </div>
 
     <div class="input-group">
-        <input type="range" min="40" max="60" value="40" step="5" id="totalHeightInput" class="input-group__input">
+        <input type="range" min="40" max="60" value="40" step="5" id="totalHeightInput" class="input-group__input input-group__input-range">
         <label for="totalHeightInput" class="input-group__label">Höhe: <span id="totalHeight"></span> mm</label>
     </div>
 
-    <div class="container__block-inputs" id="blockInputs"></div>
+    <div class="container__block-input" id="blockInputContainer"></div>
 
-    <div class="container__cutting-board" id=cuttingBoard></div>
+    <!-- <div class="container__cutting-board" id=cuttingBoard></div> -->
 
     <canvas id="renderCanvas"></canvas>
-    <babylon-scene></babylon-scene>
 
 </body>
 </html>
